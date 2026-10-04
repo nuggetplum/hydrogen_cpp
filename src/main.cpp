@@ -2,6 +2,8 @@
 #include <fstream>
 #include <sstream>
 
+#include "./tokenization.hpp"
+
 enum class TokenType {
     _return,
     _if,
