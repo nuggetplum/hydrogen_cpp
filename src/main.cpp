@@ -1,51 +1,9 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <cstdlib>
 
 #include "./tokenization.hpp"
-
-enum class TokenType {
-    _return,
-    _if,
-    _else,
-}
-struct Token {
-    TokenType type;
-    std::optional<std::string> value {};
-}
-
-std::vector<Token> tokenize(const std::string& str) {
-    std::vector<Token> tokens;
-
-    std::string buf;
-    for (int i = 0 ; i< str.length(); i++){
-        char c = str.at(i);
-        if (std::isalpha(c))
-        {
-            buf.push_back(c);
-            i++;
-            while (std::isalnum(str.at(i))) {
-                buf.push_back(str.at(i));
-                i++;
-            }
-            i--;
-            if (buf == "return") {
-                tokens.push_back({.type = TokenType::_return});
-                buf.clear();
-                continue;
-            }
-            else
-            {
-                std::cerr << "you messed up!" << std::endl;
-                extit(EXIT_FAILURE);
-                
-            }
-        }
-        if (std::isspace(c)) {
-            continue;
-        }
-    }   
-}
 
 int main(int argc, char* argv[]) {
 
@@ -56,14 +14,23 @@ int main(int argc, char* argv[]) {
     }
     
 
-    std::string contents;
-    {
-        std::stringstream contents_stream;
-        std::fstream input(argv[1], std::ios::in);
-        contents_stream << input.rdbuf();
-        contents = contents_stream.str();
+    std::ifstream input(argv[1]);
+    if (!input) {
+        std::cerr << "Could not open input file: " << argv[1] << std::endl;
+        return EXIT_FAILURE;
     }
 
-    std::cout << contents << std::endl;
-    return EXIT_SUCCESS;
+    std::stringstream contents_stream;
+    contents_stream << input.rdbuf();
+
+    const auto tokens = Tokenizer(contents_stream.str()).tokenize();
+    if (tokens.size() == 3 &&
+        tokens[0].type == TokenType::return_ &&
+        tokens[1].type == TokenType::int_lit &&
+        tokens[2].type == TokenType::semi) {
+        return std::stoi(tokens[1].value.value());
+    }
+
+    std::cerr << "Expected: return <integer>;" << std::endl;
+    return EXIT_FAILURE;
 }
