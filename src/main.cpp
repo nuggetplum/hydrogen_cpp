@@ -4,33 +4,44 @@
 #include <cstdlib>
 
 #include "./tokenization.hpp"
+#include "./parser.hpp"
+#include "generation.hpp"
 
-int main(int argc, char* argv[]) {
-
+int main(int argc, char* argv[])
+{
     if (argc != 2) {
-        std::cerr << "Incorrect usage. Correct usage is...." << std::endl;
+        std::cerr << "Incorrect usage. Correct usage is..." << std::endl;
         std::cerr << "hydro <input.hy>" << std::endl;
         return EXIT_FAILURE;
     }
-    
 
-    std::ifstream input(argv[1]);
-    if (!input) {
-        std::cerr << "Could not open input file: " << argv[1] << std::endl;
-        return EXIT_FAILURE;
+    std::string contents;
+    {
+        std::stringstream contents_stream;
+        std::fstream input(argv[1], std::ios::in);
+        contents_stream << input.rdbuf();
+        contents = contents_stream.str();
     }
 
-    std::stringstream contents_stream;
-    contents_stream << input.rdbuf();
+    Tokenizer tokenizer(std::move(contents));
+    std::vector<Token> tokens = tokenizer.tokenize();
 
-    const auto tokens = Tokenizer(contents_stream.str()).tokenize();
-    if (tokens.size() == 3 &&
-        tokens[0].type == TokenType::return_ &&
-        tokens[1].type == TokenType::int_lit &&
-        tokens[2].type == TokenType::semi) {
-        return std::stoi(tokens[1].value.value());
+    Parser parser(std::move(tokens));
+    std::optional<NodeProg> prog = parser.parse_prog();
+
+    if (!prog.has_value()) {
+        std::cerr << "Invalid program" << std::endl;
+        exit(EXIT_FAILURE);
     }
 
-    std::cerr << "Expected: return <integer>;" << std::endl;
-    return EXIT_FAILURE;
+    {
+        Generator generator(prog.value());
+        std::fstream file("out.asm", std::ios::out);
+        file << generator.gen_prog();
+    }
+
+    system("nasm -felf64 out.asm");
+    system("ld -o out out.o");
+
+    return EXIT_SUCCESS;
 }

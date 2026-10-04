@@ -1,1 +1,2 @@
-return 69;
+let x = 7;
+exit(7);

@@ -3,7 +3,7 @@
 #include <cassert>
 #include <variant>
 
-#include "arena.hpp"
+//#include "arena.hpp"
 #include "tokenization.hpp"
 
 struct NodeTermIntLit {
